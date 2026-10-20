@@ -33,11 +33,20 @@ WEIGHTS = "densenet121-res224-chex"
 
 
 def select(labels, preds, finding, n):
-    """Indices of the n most confident true positives and false positives."""
+    """Indices of the n most confident true positives and false positives.
+
+    At most one image per patient (their highest-scoring one), so repeat films
+    of the same patient cannot fill the sample and the gallery.
+    """
     score = preds[f"chex:{finding}"]
     pos = labels[finding] == 1
-    tp = score[pos].sort_values(ascending=False).index[:n]
-    fp = score[~pos].sort_values(ascending=False).index[:n]
+
+    def top_per_patient(mask):
+        ranked = score[mask].sort_values(ascending=False)
+        first = ~labels.loc[ranked.index, "patient_id"].duplicated()
+        return ranked.index[first.to_numpy()][:n]
+
+    tp, fp = top_per_patient(pos), top_per_patient(~pos)
     return [("true positive", i) for i in tp] + [("false positive", i) for i in fp]
 
 
@@ -130,7 +139,7 @@ def main():
     })
     md = ("# Grad-CAM audit of the CheXpert model on NIH images\n\n"
           f"For each finding, the {args.n} most confident true positives and the {args.n} most "
-          "confident false positives. \"Heatmap inside chest\" is the share of Grad-CAM weight "
+          "confident false positives, one image per patient. \"Heatmap inside chest\" is the share of Grad-CAM weight "
           "inside the lungs, heart and mediastinum. \"Lift\" divides it by the chest's share of "
           "the image (1.0 = no more focused than a uniform heatmap). \"Mostly outside chest\" "
           "counts heatmaps with under half their weight inside.\n\n"
