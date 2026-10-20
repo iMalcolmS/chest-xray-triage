@@ -1,0 +1,13 @@
+# Intel Macs: PyTorch stopped publishing x86_64 macOS wheels after 2.2
+torch==2.2.2
+torchvision==0.17.2
+numpy<2
+torchxrayvision==1.5.7
+grad-cam
+scikit-image
+scikit-learn
+pandas
+tabulate
+matplotlib
+tqdm
+pytest
