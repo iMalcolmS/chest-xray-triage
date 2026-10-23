@@ -13,7 +13,7 @@ import torch  # noqa: E402
 import torchxrayvision as xrv  # noqa: E402
 
 from cxr.explain import gradcam  # noqa: E402
-from cxr.thresholds import pick  # noqa: E402
+from cxr.thresholds import is_supported, pick  # noqa: E402
 
 WEIGHTS = "densenet121-res224-chex"
 THRESHOLDS_PATH = Path(__file__).with_name("thresholds.json")
@@ -35,10 +35,19 @@ class Triage:
         for j, name in enumerate(self.model.pathologies):
             if name not in self.thresholds:
                 continue
+            if not is_supported(self.thresholds, name, view):
+                results.append({"finding": name, "score": round(float(out[j]), 4),
+                                "threshold": None, "flagged": False,
+                                "status": f"not reported on {view} films (model too weak on this view)"})
+                continue
             threshold = pick(self.thresholds, name, view)
             results.append({"finding": name, "score": round(float(out[j]), 4),
-                            "threshold": round(threshold, 4), "flagged": bool(out[j] >= threshold)})
-        return sorted(results, key=lambda r: r["score"] - r["threshold"], reverse=True)
+                            "threshold": round(threshold, 4), "flagged": bool(out[j] >= threshold),
+                            "status": "reported"})
+        reported = [r for r in results if r["threshold"] is not None]
+        skipped = [r for r in results if r["threshold"] is None]
+        reported.sort(key=lambda r: r["score"] - r["threshold"], reverse=True)
+        return reported + skipped
 
     def heatmap_png(self, pixels, finding):
         """Grad-CAM for one finding over the image, as a base64 PNG."""

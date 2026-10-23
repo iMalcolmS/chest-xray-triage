@@ -11,6 +11,7 @@ import logging
 import time
 
 from fastapi import FastAPI, File, HTTPException, Query, UploadFile
+from fastapi.responses import RedirectResponse
 
 from service.fhir import RESEARCH_NOTE, diagnostic_report
 from service.inputs import UnsupportedImage, read_xray
@@ -31,6 +32,10 @@ def create_app(triage: Triage | None = None) -> FastAPI:
         if state["triage"] is None:  # load once, on first use
             state["triage"] = Triage()
         return state["triage"]
+
+    @app.get("/", include_in_schema=False)
+    def root():
+        return RedirectResponse("/docs")
 
     @app.get("/health")
     def health():
@@ -63,7 +68,7 @@ def create_app(triage: Triage | None = None) -> FastAPI:
             "fhir": diagnostic_report(results, xray.view, conclusion, f"{WEIGHTS}@{VERSION}"),
             "disclaimer": RESEARCH_NOTE,
         }
-        if heatmap and results:
+        if heatmap and results and results[0]["threshold"] is not None:
             body["heatmap_png_base64"] = model.heatmap_png(xray.pixels, results[0]["finding"])
 
         # One structured log line per request: no identifiers, only what monitoring needs.

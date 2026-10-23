@@ -19,8 +19,10 @@ def diagnostic_report(results, view, conclusion, model_version):
             "status": "preliminary",
             "code": {"text": r["finding"]},
             "valueQuantity": {"value": r["score"], "unit": "model score"},
-            "interpretation": [{"text": "flagged" if r["flagged"] else "not flagged"}],
-            "note": [{"text": f"Threshold {r['threshold']} for view {view or 'unknown'}"}],
+            "interpretation": [{"text": "flagged" if r["flagged"] else
+                                ("not reported" if r["threshold"] is None else "not flagged")}],
+            "note": [{"text": r.get("status") if r["threshold"] is None
+                      else f"Threshold {r['threshold']} for view {view or 'unknown'}"}],
         })
     return {
         "resourceType": "DiagnosticReport",

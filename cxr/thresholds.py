@@ -32,6 +32,14 @@ def sensitivity_specificity(y_true, scores, threshold):
     return float(sens), float(spec)
 
 
+MIN_VIEW_AUC = 0.60  # below this the model cannot separate cases on that view
+
+
+def is_supported(thresholds, finding, view):
+    """False when the model was too weak on this view to report the finding."""
+    return view not in thresholds[finding].get("unsupported_views", [])
+
+
 def pick(thresholds, finding, view):
     """Threshold for a finding and view, falling back to the all-views one."""
     entry = thresholds[finding]

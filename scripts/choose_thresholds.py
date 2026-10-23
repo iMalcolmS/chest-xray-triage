@@ -15,10 +15,12 @@ from pathlib import Path
 
 import numpy as np
 import pandas as pd
+from sklearn.metrics import roc_auc_score
 from sklearn.model_selection import GroupShuffleSplit
 
 from cxr.data import load_labels
-from cxr.thresholds import VIEWS, sensitivity_specificity, threshold_for_sensitivity
+from cxr.thresholds import (MIN_VIEW_AUC, VIEWS, sensitivity_specificity,
+                            threshold_for_sensitivity)
 
 FINDINGS = ("Atelectasis", "Cardiomegaly", "Consolidation", "Edema", "Effusion",
             "Pneumonia", "Pneumothorax")
@@ -53,6 +55,8 @@ def main():
             idx = tune[view[tune] == v]
             if y[idx].sum() >= MIN_TUNE_POSITIVES:
                 entry[v] = threshold_for_sensitivity(y[idx], s[idx], args.target)
+                if roc_auc_score(y[idx], s[idx]) < MIN_VIEW_AUC:
+                    entry.setdefault("unsupported_views", []).append(v)
         thresholds[finding] = entry
 
         for v in VIEWS:
@@ -66,6 +70,7 @@ def main():
                 "Single threshold: sens / spec": f"{single[0]:.2f} / {single[1]:.2f}",
                 "Per-view threshold: sens / spec": f"{per_view[0]:.2f} / {per_view[1]:.2f}",
                 "Own view threshold": "yes" if v in entry else "no (fallback)",
+                "Reported on this view": "no (AUC < 0.60)" if v in entry.get("unsupported_views", []) else "yes",
             })
 
     Path("service").mkdir(exist_ok=True)
@@ -77,7 +82,8 @@ def main():
           f"Thresholds tuned for {args.target:.0%} sensitivity on half of the patients "
           f"({len(np.unique(labels['patient_id'].to_numpy()[tune]))}), evaluated on the other half "
           f"({len(np.unique(labels['patient_id'].to_numpy()[test]))}). sens = sensitivity, "
-          f"spec = specificity.\n\n" + pd.DataFrame(rows).to_markdown(index=False) + "\n")
+          f"spec = specificity. A finding is not reported on a view where its tuning-half AUC "
+          f"is below {MIN_VIEW_AUC:.2f}.\n\n" + pd.DataFrame(rows).to_markdown(index=False) + "\n")
     Path("results").mkdir(exist_ok=True)
     Path("results/thresholds.md").write_text(md, encoding="utf-8")
     print(md)

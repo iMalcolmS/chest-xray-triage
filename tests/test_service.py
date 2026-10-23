@@ -11,7 +11,8 @@ from service.inputs import read_xray
 from service.triage import Triage
 
 THRESHOLDS = {"Effusion": {"any": 0.5, "AP": 0.9, "PA": 0.1},
-              "Cardiomegaly": {"any": 0.5}}
+              "Cardiomegaly": {"any": 0.5},
+              "Pneumothorax": {"any": 0.5, "AP": 0.05, "unsupported_views": ["AP"]}}
 
 
 def _client():
@@ -48,7 +49,20 @@ def test_dicom_view_is_read_and_used(tmp_path):
     effusion = next(f for f in body["findings"] if f["finding"] == "Effusion")
     assert effusion["threshold"] == 0.9  # the AP-specific threshold
     assert body["fhir"]["resourceType"] == "DiagnosticReport"
-    assert len(body["fhir"]["contained"]) == len(body["findings"]) == 2
+    assert len(body["fhir"]["contained"]) == len(body["findings"]) == 3
+    ptx = next(f for f in body["findings"] if f["finding"] == "Pneumothorax")
+    assert ptx["threshold"] is None and ptx["flagged"] is False  # not reported on AP
+
+
+def test_unsupported_view_still_reported_on_other_view(tmp_path):
+    r = _client().post("/predict", files={"file": ("x.dcm", _dicom_bytes(tmp_path, "PA"))})
+    ptx = next(f for f in r.json()["findings"] if f["finding"] == "Pneumothorax")
+    assert ptx["threshold"] == 0.5 and ptx["status"] == "reported"
+
+
+def test_root_redirects_to_docs():
+    r = _client().get("/", follow_redirects=False)
+    assert r.status_code in (302, 307) and r.headers["location"] == "/docs"
 
 
 def test_png_needs_view_from_request():

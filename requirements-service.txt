@@ -1,0 +1,11 @@
+# Runtime dependencies for the API container (torch is installed from the CPU index first)
+numpy<2
+torchxrayvision==1.5.7
+grad-cam
+scikit-image
+pandas
+matplotlib
+fastapi
+uvicorn
+python-multipart
+pydicom
