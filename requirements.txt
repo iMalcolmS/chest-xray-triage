@@ -11,3 +11,9 @@ tabulate
 matplotlib
 tqdm
 pytest
+# API service (project A)
+fastapi
+uvicorn
+python-multipart
+pydicom
+httpx

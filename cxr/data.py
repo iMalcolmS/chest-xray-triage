@@ -52,15 +52,25 @@ _transform = torchvision.transforms.Compose([
 ])
 
 
-def preprocess(path):
-    """Read a PNG and return a (1, 224, 224) float32 array in the [-1024, 1024] range
-    that torchxrayvision models expect."""
-    img = imread(path)
+def preprocess_array(img, max_value=None):
+    """Turn a 2-D (or RGB/RGBA) pixel array into the (1, 224, 224) float32 input,
+    in the [-1024, 1024] range that torchxrayvision models expect.
+
+    max_value is the brightest possible pixel (255 for 8-bit images, 4095 for
+    12-bit DICOM, ...). If omitted it is guessed from the data.
+    """
+    img = np.asarray(img)
     if img.ndim == 3:  # a few NIH files are RGB/RGBA: drop alpha, average to grey
         img = img[..., :3].mean(axis=2)
-    max_value = 65535 if img.max() > 255 else 255
+    if max_value is None:
+        max_value = 65535 if img.max() > 255 else 255
     img = xrv.datasets.normalize(img.astype(np.float32), max_value)
     return _transform(img[None, ...]).astype(np.float32)
+
+
+def preprocess(path):
+    """Read an image file (PNG, JPEG) and preprocess it with preprocess_array."""
+    return preprocess_array(imread(path))
 
 
 class CXRDataset(torch.utils.data.Dataset):
