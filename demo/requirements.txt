@@ -1,0 +1,15 @@
+# Streamlit Community Cloud installs this file (it sits next to the entrypoint).
+# CPU-only PyTorch wheels keep the install small; choose Python 3.11 for the app.
+--find-links https://download.pytorch.org/whl/cpu/torch/
+--find-links https://download.pytorch.org/whl/cpu/torchvision/
+torch==2.2.2+cpu
+torchvision==0.17.2+cpu
+numpy<2
+torchxrayvision==1.5.7
+grad-cam
+scikit-image
+pandas
+tabulate
+matplotlib
+pydicom
+streamlit

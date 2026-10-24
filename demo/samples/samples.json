@@ -1,0 +1,32 @@
+[
+  {
+    "file": "ap_cardiomegaly.dcm",
+    "view": "AP",
+    "nih_labels": [
+      "Cardiomegaly",
+      "Emphysema"
+    ]
+  },
+  {
+    "file": "pa_effusion.dcm",
+    "view": "PA",
+    "nih_labels": [
+      "Effusion"
+    ]
+  },
+  {
+    "file": "pa_pneumothorax.dcm",
+    "view": "PA",
+    "nih_labels": [
+      "Mass",
+      "Pneumothorax"
+    ]
+  },
+  {
+    "file": "pa_no_finding.dcm",
+    "view": "PA",
+    "nih_labels": [
+      "No Finding"
+    ]
+  }
+]

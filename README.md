@@ -1,5 +1,7 @@
 # Chest X-ray triage: external validation, adaptation and explainability
 
+[![CI](https://github.com/iMalcolmS/chest-xray-triage/actions/workflows/ci.yml/badge.svg)](https://github.com/iMalcolmS/chest-xray-triage/actions/workflows/ci.yml) [![Live demo](https://static.streamlit.io/badges/streamlit_badge_black_white.svg)](https://cxr-triage-demo.streamlit.app)
+
 **Does a chest X-ray model trained at one hospital still work at another?** This project tests that on 5,606 NIH ChestX-ray14 images with pretrained DenseNet121 models from [torchxrayvision](https://github.com/mlmed/torchxrayvision), then measures what local adaptation recovers, how much data leakage would inflate the results, and where the model actually looks.
 
 ## Key findings
@@ -73,6 +75,24 @@ For each finding, the 30 most confident true positives and 30 most confident fal
 
 Top row: confident true positives. Bottom row: confident false positives, including heat over soft tissue outside the chest and over devices and lines. More: [Cardiomegaly](results/gradcam_cardiomegaly.png), [Effusion](results/gradcam_effusion.png), [full table](results/gradcam_audit.md).
 
+## Triage service
+
+The findings above are turned into a deployable triage API (FastAPI) and a [live demo](https://cxr-triage-demo.streamlit.app):
+
+- **DICOM in, FHIR out.** `/predict` accepts DICOM, PNG or JPEG, reads the view (AP/PA) from the DICOM header, and returns per-finding scores, a FHIR R4 `DiagnosticReport` and an optional Grad-CAM overlay.
+- **View-aware thresholds.** Thresholds are set for 80% sensitivity separately on AP and PA films ([results/thresholds.md](results/thresholds.md)). With one shared threshold, AP films were over-flagged (specificity 0.15–0.34) and PA cases were missed (sensitivity 0.62–0.72 for Atelectasis, Cardiomegaly, Consolidation and Effusion). Per-view thresholds bring both views close to 80% sensitivity; for example Effusion AP specificity rises from 0.30 to 0.52 and Consolidation PA sensitivity from 0.62 to 0.85.
+- **Refuses to guess.** Where the model's AUC on a view is below 0.60, that finding is reported as "not reported on this view" instead of producing near-random alarms.
+- **No patient identifiers** are returned or logged; each request logs only latency, view and flags for monitoring.
+- **Tested and packaged.** CI runs the test suite and builds the Docker image on every push; the image is published to GitHub Container Registry.
+
+```bash
+docker run -p 7860:7860 ghcr.io/imalcolms/chest-xray-triage:latest
+# then open http://localhost:7860/docs
+curl -F "file=@chest.dcm" "http://localhost:7860/predict?heatmap=true"
+```
+
+Even with per-view thresholds, specificity at 80% sensitivity stays between about 0.2 and 0.6 for most findings, so this would still raise many false alarms in practice: it is a research prototype, not a medical device.
+
 ## Limitations
 
 - **Noisy labels.** NIH labels were text-mined from reports; a radiologist review found them often inaccurate ([Oakden-Rayner, 2019](https://arxiv.org/abs/1907.12720)). Absolute AUCs are lower than published NIH results partly for this reason.
@@ -110,6 +130,8 @@ cxr/
   metrics.py     AUC with patient-level bootstrap CI
   adapt.py       patient-grouped splits, nested-CV logistic heads
   explain.py     Grad-CAM on raw logits, anatomical chest masks
+service/         triage API: DICOM/PNG input, per-view thresholds, FHIR output
+demo/            Streamlit demo and DICOM samples from NIH ChestX-ray14
 scripts/         one script per analysis (see Reproduce)
 tests/           unit tests (pytest)
 results/         tables and figures committed from each run
