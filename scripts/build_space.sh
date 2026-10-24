@@ -17,7 +17,7 @@ colorTo: gray
 sdk: docker
 app_port: 7860
 pinned: false
-short_description: Research prototype, view-aware chest X-ray triage with FHIR output
+short_description: View-aware chest X-ray triage API with FHIR output
 ---
 
 # Chest X-ray triage API (research prototype)
