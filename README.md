@@ -83,6 +83,7 @@ The findings above are turned into a deployable triage API (FastAPI) and a [live
 - **View-aware thresholds.** Thresholds are set for 80% sensitivity separately on AP and PA films ([results/thresholds.md](results/thresholds.md)). With one shared threshold, AP films were over-flagged (specificity 0.15–0.34) and PA cases were missed (sensitivity 0.62–0.72 for Atelectasis, Cardiomegaly, Consolidation and Effusion). Per-view thresholds bring both views close to 80% sensitivity; for example Effusion AP specificity rises from 0.30 to 0.52 and Consolidation PA sensitivity from 0.62 to 0.85.
 - **Refuses to guess.** Where the model's AUC on a view is below 0.60, that finding is reported as "not reported on this view" instead of producing near-random alarms.
 - **No patient identifiers** are returned or logged; each request logs only latency, view and flags for monitoring.
+- **Documented for a hospital assessment.** [MODEL_CARD.md](MODEL_CARD.md) has the intended use, a DCB0129-style hazard log, DTAC notes and a monitoring plan.
 - **Tested and packaged.** CI runs the test suite and builds the Docker image on every push; the image is published to GitHub Container Registry.
 
 ```bash
